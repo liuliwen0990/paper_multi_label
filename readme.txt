@@ -1,0 +1,3 @@
+test_norm:多标签深度森林模型，数据预处理标准化过
+Resnet-副本：air那篇文章的原模型，也是论文一开始就构建的模型，有5个残余块
+ResNet_paper1_networktry:是3个残余块的网络
