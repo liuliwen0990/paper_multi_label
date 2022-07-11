@@ -14,6 +14,7 @@ from pytorchtools import EarlyStopping
 import time
 import random
 
+# m is 
 def weight_init(m):
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
@@ -307,215 +308,193 @@ def threshold_desicion(train_pre_label, true_label):
     return thresholds
 
 
-#snr_val = [ '0','-3','-6','-9','-12','-15','-18']
+snr_val = [ '0','-3','-6','-9','-12','-15','-18']
 
 
-train_num = '100'
-SNR = '-12'
+train_num = '40'
+
 mix = 7
-print(SNR, train_num,mix)
 BATCH_SIZE = 32
 num_experiment = 10 # 实验次数
-train_filename = '0628_compound_snr_{}_train_{}.xlsx'.format(SNR, train_num)
-test_filename = '0628_compound_snr_{}_test.xlsx'.format(SNR)
-x_train, y_train, x_test, y_test, x_test_I = get_data(train_filename, test_filename, train_num_each = int(train_num),mix_num = mix)
-num_train = len(x_train)
-num_test = len(x_test)
-num_labels = y_test.shape[1]
-x_train = torch.from_numpy(x_train).type(torch.FloatTensor)
-y_train = torch.from_numpy(y_train).type(torch.LongTensor)
-x_test = torch.from_numpy(x_test).type(torch.FloatTensor)
-y_test = torch.from_numpy(y_test).type(torch.LongTensor)
-#x_test_I = torch.from_numpy(x_test_I).type(torch.FloatTensor)
+for SNR in snr_val:
+    train_filename = '0628_compound_snr_{}_train_{}.xlsx'.format(SNR, train_num)
+    test_filename = '0628_compound_snr_{}_test.xlsx'.format(SNR)
+    x_train, y_train, x_test, y_test, x_test_I = get_data(train_filename, test_filename, train_num_each = int(train_num),mix_num = mix)
+    num_train = len(x_train)
+    num_test = len(x_test)
+    num_labels = y_test.shape[1]
+    x_train = torch.from_numpy(x_train).type(torch.FloatTensor)
+    y_train = torch.from_numpy(y_train).type(torch.LongTensor)
+    x_test = torch.from_numpy(x_test).type(torch.FloatTensor)
+    y_test = torch.from_numpy(y_test).type(torch.LongTensor)
+    #x_test_I = torch.from_numpy(x_test_I).type(torch.FloatTensor)
 
-train_set = Data.TensorDataset(x_train, y_train)
-test_set = Data.TensorDataset(x_test, y_test)
-#test_set_I = Data.TensorDataset(x_test_I, y_test)
-test_loader = Data.DataLoader(
-    dataset=test_set,
-    batch_size=BATCH_SIZE,
-    shuffle=True)
-
-row0 = ['hamming_loss', 'one-error', 'coverage', 'ranking_loss', 'average presicion', 'Macro-AUC','train_time']
-workbook = xlwt.Workbook(encoding='utf-8')
-performance_sheet = workbook.add_sheet('result')
-
-for i in range(0, len(row0)):
-    performance_sheet.write(0, i, row0[i])
-for l in range(num_experiment):
-    print (SNR,train_num,l)
-    model = MLCNN()
-    model.apply(weight_init)
-    print ("模型初始化完毕")
-    # print(model)
-    # 数据获取与处理
-    m = nn.Sigmoid()
-    loss_func = nn.BCELoss()
-    opt = torch.optim.Adam(model.parameters(), lr=1e-4)  # 论文就是0.01
-    print(m)
-    # loss_count = []
-
-    macro_auc_count = []
-    hamming_loss_count = []
-    train_losses = []
-    valid_losses = []
-    valid_hammingloss = []
-    avg_train_losses = []
-    avg_valid_losses = []
-    print('loss initiate finished')
-    n_epoch = 150
-    patience = 10  # 当验证集损失在连续15次训练周期中都没有得到降低时，停止模型训练，以防止模型过拟合
-    early_stopping = EarlyStopping(patience, verbose=True)  # 关于 EarlyStopping 的代码可先看博客后面的内容
-    train_size = int(0.7 * len(train_set))
-    valid_size = len(train_set) - train_size
-    train_dataset, valid_dataset = torch.utils.data.random_split(train_set, [train_size, valid_size])
-    print("数据集划分完毕")
-
-    train_out_prob = []
-    train_loader = Data.DataLoader(
-        dataset=train_dataset,
+    train_set = Data.TensorDataset(x_train, y_train)
+    test_set = Data.TensorDataset(x_test, y_test)
+    #test_set_I = Data.TensorDataset(x_test_I, y_test)
+    test_loader = Data.DataLoader(
+        dataset=test_set,
         batch_size=BATCH_SIZE,
         shuffle=True)
-    valid_loader = Data.DataLoader(
-        dataset=valid_dataset,
-        shuffle=True)
-    print ("数据集加载完毕")
-    model.train()
-    start = time.time()
-    for epoch in range(1, n_epoch + 1):
 
-        print('epoch=', epoch)
+    row0 = ['hamming_loss', 'one-error', 'coverage', 'ranking_loss', 'average presicion', 'Macro-AUC','train_time']
+    workbook = xlwt.Workbook(encoding='utf-8')
+    performance_sheet = workbook.add_sheet('result')
 
-        for i, (x, y) in enumerate(train_loader):  # i:batch,x:data;y:target
-            batch_x = Variable(x)  # torch.Size([128, 1, 28, 28])
-            batch_y = Variable(y)  # torch.Size([128])
+    for i in range(0, len(row0)):
+        performance_sheet.write(0, i, row0[i])
+    for l in range(num_experiment):
+        print (SNR,train_num,l)
+        model = MLCNN()
+        model.apply(weight_init)
+        print ("模型初始化完毕")
+        # print(model)
+        # 数据获取与处理
+        m = nn.Sigmoid()
+        loss_func = nn.BCELoss()
+        opt = torch.optim.Adam(model.parameters(), lr=1e-4)  # 论文就是0.01
+        print(m)
+        # loss_count = []
 
-            # 获取最后输出
-            out = model(batch_x)  # torch.Size([128,10])
-            out2 = m(out)
-            # train_out_prob.append(out2)
-            # print(type(out2))
-            # 获取损失
-            loss = loss_func(out2, batch_y.float())
-            # print(type(loss)):<class 'torch.Tensor'>
-            # 使用优化器优化损失
-            opt.zero_grad()  # 清空上一步残余更新参数值
-            loss.backward()  # 误差反向传播，计算参数更新值
-            opt.step()  # 将参数更新值施加到net的parmeters上
-            train_losses.append(loss)
-            # if i%5 == 0:
-            # loss_count.append(loss)
-            # print('{}:\t'.format(i), loss.item())
-            # torch.save(model,'D:/Liuliwen/MLDF')
-
-        model.eval()  # 设置模型为评估/测试模式
-        falselabels = 0
-        num_have_valided = 0
-        predict_prob_valid = np.zeros((valid_size, num_labels))
-        #label_true_valid = np.zeros((valid_size, num_labels))
-        pre_label_valid = np.zeros((valid_size, num_labels))
-        for i, (data, target) in enumerate(valid_loader):
-            # print(data)
-            f = num_have_valided
-            data = Variable(data)
-            target = Variable(target)
-            output = model(data)
-            valid_probability = m(output)
-            num_have_valided = f + len(target)
-            valid_loss = loss_func(valid_probability, target.float())
-            valid_losses.append(valid_loss)
-            #predict_label_valid = label_predict(valid_probability)
-            #falselabels = falselabels + false_labels(target, predict_label_valid)
-            # print (falselabels)
-            #label_true_valid[f:num_have_valided, :] = target
-            #pre_label_valid[f:num_have_valided, :] = predict_label_valid
-            #predict_prob_valid[f:num_have_valided, :] = valid_probability.detach().numpy()
-        # print(type(train_losses))
-        train_loss = torch.mean(torch.stack(train_losses))
-        valid_loss = torch.mean(torch.stack(valid_losses))
-        #hamming_loss_valid = falselabels / (valid_size * 5)
-        avg_train_losses.append(train_loss)
-        avg_valid_losses.append(valid_loss)
-        #valid_hammingloss.append(hamming_loss_valid)
-
+        macro_auc_count = []
+        hamming_loss_count = []
         train_losses = []
         valid_losses = []
+        valid_hammingloss = []
+        avg_train_losses = []
+        avg_valid_losses = []
+        print('loss initiate finished')
+        n_epoch = 150
+        patience = 10  # 当验证集损失在连续15次训练周期中都没有得到降低时，停止模型训练，以防止模型过拟合
+        early_stopping = EarlyStopping(patience, verbose=True)  # 关于 EarlyStopping 的代码可先看博客后面的内容
+        train_size = int(0.7 * len(train_set))
+        valid_size = len(train_set) - train_size
+        train_dataset, valid_dataset = torch.utils.data.random_split(train_set, [train_size, valid_size])
+        print("数据集划分完毕")
 
-        early_stopping(valid_loss, model)
-        # print(valid_hammingloss)
-        #early_stopping(hamming_loss_valid, model)
-        if early_stopping.early_stop:
-            print("Early stopping")
-            break
-    end = time.time()
-    train_time = end - start
-    print("训练结束\n epoch次数：%d" % (epoch))
-    print("训练时间：%s Seconds" % (train_time))
-    '''
-    model.eval()
-    train_true_label = np.zeros((train_size, num_labels))
-    train_out_prob = np.zeros((train_size, num_labels))
+        train_out_prob = []
+        train_loader = Data.DataLoader(
+            dataset=train_dataset,
+            batch_size=BATCH_SIZE,
+            shuffle=True)
+        valid_loader = Data.DataLoader(
+            dataset=valid_dataset,
+            shuffle=True)
+        print ("数据集加载完毕")
+        model.train()
+        start = time.time()
+        for epoch in range(1, n_epoch + 1):
 
-    num_have_trained = 0
-    for i, (x, y) in enumerate(train_loader):  # i:batch,x:data;y:target
-        batch_x = Variable(x)  # torch.Size([128, 1, 28, 28])
-        batch_y = Variable(y)  # torch.Size([128])
+            print('epoch=', epoch)
 
-        # 获取最后输出
-        out = model(batch_x)  # torch.Size([128,10])
-        out2 = m(out)
-        cc = num_have_trained
-        num_have_trained = num_have_trained + len(batch_y)
-        train_out_prob[cc:num_have_trained, :] = out2.detach().numpy()
-        train_true_label[cc:num_have_trained, :] = y
+            for i, (x, y) in enumerate(train_loader):  # i:batch,x:data;y:target
+                batch_x = Variable(x)  # torch.Size([128, 1, 28, 28])
+                batch_y = Variable(y)  # torch.Size([128])
 
-    train_pre_label = label_predict(train_out_prob)
-    thresholds = threshold_desicion(train_pre_label, train_true_label)
-    print(thresholds)
-    '''
-    falselabels = 0
-    num_have_tested = 0
-    predict_prob = np.zeros((num_test, num_labels))
-    label_true = np.zeros((num_test, num_labels))
-    pre_label = np.zeros((num_test, num_labels))
-    model.eval()
-    for x, y in test_loader:
-        # print(len(y))
-        test_x = Variable(x)
-        test_y = Variable(y)
-        # print(test_y.shape)
-        a = num_have_tested
-        num_have_tested = num_have_tested + len(test_y)
-        out = model(test_x)
-        out_probability = m(out)
-        # 得到预测标签
-        predict_label = label_predict(out_probability)
-        falselabels = falselabels + false_labels(test_y, predict_label)
-        # print (falselabels)
-        label_true[a:num_have_tested, :] = y
-        pre_label[a:num_have_tested, :] = predict_label
-        predict_prob[a:num_have_tested, :] = out_probability.detach().numpy()
+                # 获取最后输出
+                out = model(batch_x)  # torch.Size([128,10])
+                out2 = m(out)
+                # train_out_prob.append(out2)
+                # print(type(out2))
+                # 获取损失
+                loss = loss_func(out2, batch_y.float())
+                # print(type(loss)):<class 'torch.Tensor'>
+                # 使用优化器优化损失
+                opt.zero_grad()  # 清空上一步残余更新参数值
+                loss.backward()  # 误差反向传播，计算参数更新值
+                opt.step()  # 将参数更新值施加到net的parmeters上
+                train_losses.append(loss)
+                # if i%5 == 0:
+                # loss_count.append(loss)
+                # print('{}:\t'.format(i), loss.item())
+                # torch.save(model,'D:/Liuliwen/MLDF')
 
-    hamming_loss = falselabels / (num_test * 7)
-    one_error = compute_one_error(predict_prob, label_true)
-    coverage = compute_coverage(predict_prob, label_true)
-    ranking_loss = compute_ranking_loss(predict_prob, label_true)
-    average_precision = compute_average_precision(predict_prob, label_true)
-    macro_auc = compute_macro_auc(predict_prob, label_true)
-    print('Final test results:\t')
-    print('hamming loss:\t', hamming_loss)
-    print('one-error:\t', one_error)
-    print('coverage:\t', coverage)
-    print('ranking_loss:\t', ranking_loss)
-    print('average precision:\t', average_precision)
-    print('Macro-AUC:\t', macro_auc)
-    performance_sheet.write(l + 1, 0, hamming_loss)
-    performance_sheet.write(l + 1, 1, one_error)
-    performance_sheet.write(l + 1, 2, coverage)
-    performance_sheet.write(l + 1, 3, ranking_loss)
-    performance_sheet.write(l + 1, 4, average_precision)
-    performance_sheet.write(l + 1, 5, macro_auc)
-    performance_sheet.write(l+1, 6, train_time)
+            model.eval()  # 设置模型为评估/测试模式
+            falselabels = 0
+            num_have_valided = 0
+            predict_prob_valid = np.zeros((valid_size, num_labels))
+            #label_true_valid = np.zeros((valid_size, num_labels))
+            pre_label_valid = np.zeros((valid_size, num_labels))
+            for i, (data, target) in enumerate(valid_loader):
+                # print(data)
+                f = num_have_valided
+                data = Variable(data)
+                target = Variable(target)
+                output = model(data)
+                valid_probability = m(output)
+                num_have_valided = f + len(target)
+                valid_loss = loss_func(valid_probability, target.float())
+                valid_losses.append(valid_loss)
+                #predict_label_valid = label_predict(valid_probability)
+                #falselabels = falselabels + false_labels(target, predict_label_valid)
+                # print (falselabels)
+                #label_true_valid[f:num_have_valided, :] = target
+                #pre_label_valid[f:num_have_valided, :] = predict_label_valid
+                #predict_prob_valid[f:num_have_valided, :] = valid_probability.detach().numpy()
+            # print(type(train_losses))
+            train_loss = torch.mean(torch.stack(train_losses))
+            valid_loss = torch.mean(torch.stack(valid_losses))
+            #hamming_loss_valid = falselabels / (valid_size * 5)
+            avg_train_losses.append(train_loss)
+            avg_valid_losses.append(valid_loss)
+            #valid_hammingloss.append(hamming_loss_valid)
+
+            train_losses = []
+            valid_losses = []
+
+            early_stopping(valid_loss, model)
+            # print(valid_hammingloss)
+            #early_stopping(hamming_loss_valid, model)
+            if early_stopping.early_stop:
+                print("Early stopping")
+                break
+        end = time.time()
+        train_time = end - start
+        print("训练结束\n epoch次数：%d" % (epoch))
+        print("训练时间：%s Seconds" % (train_time))
+        falselabels = 0
+        num_have_tested = 0
+        predict_prob = np.zeros((num_test, num_labels))
+        label_true = np.zeros((num_test, num_labels))
+        pre_label = np.zeros((num_test, num_labels))
+        model.eval()
+        for x, y in test_loader:
+            # print(len(y))
+            test_x = Variable(x)
+            test_y = Variable(y)
+            # print(test_y.shape)
+            a = num_have_tested
+            num_have_tested = num_have_tested + len(test_y)
+            out = model(test_x)
+            out_probability = m(out)
+            # 得到预测标签
+            predict_label = label_predict(out_probability)
+            falselabels = falselabels + false_labels(test_y, predict_label)
+            # print (falselabels)
+            label_true[a:num_have_tested, :] = y
+            pre_label[a:num_have_tested, :] = predict_label
+            predict_prob[a:num_have_tested, :] = out_probability.detach().numpy()
+
+        hamming_loss = falselabels / (num_test * 7)
+        one_error = compute_one_error(predict_prob, label_true)
+        coverage = compute_coverage(predict_prob, label_true)
+        ranking_loss = compute_ranking_loss(predict_prob, label_true)
+        average_precision = compute_average_precision(predict_prob, label_true)
+        macro_auc = compute_macro_auc(predict_prob, label_true)
+        print('Final test results:\t')
+        print('hamming loss:\t', hamming_loss)
+        print('one-error:\t', one_error)
+        print('coverage:\t', coverage)
+        print('ranking_loss:\t', ranking_loss)
+        print('average precision:\t', average_precision)
+        print('Macro-AUC:\t', macro_auc)
+        performance_sheet.write(l + 1, 0, hamming_loss)
+        performance_sheet.write(l + 1, 1, one_error)
+        performance_sheet.write(l + 1, 2, coverage)
+        performance_sheet.write(l + 1, 3, ranking_loss)
+        performance_sheet.write(l + 1, 4, average_precision)
+        performance_sheet.write(l + 1, 5, macro_auc)
+        performance_sheet.write(l+1, 6, train_time)
     # accuracy_partial_count(label_true, pre_label)
     '''
     macro_auc_count.clear()
@@ -544,9 +523,9 @@ for l in range(num_experiment):
     plt.legend()
     plt.show()
     '''
-ra = random.randint(1,99)
-filename =  '0704_results_MLCNN2_snr_{}_trainnum_{}_{}.xls'.format(SNR,train_num,ra)
-workbook.save(filename)
+    ra = random.randint(1,99)
+    filename =  '0704_results_MLCNN2_snr_{}_trainnum_{}_{}.xls'.format(SNR,train_num,ra)
+    workbook.save(filename)
 
 
 

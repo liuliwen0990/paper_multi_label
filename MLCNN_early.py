@@ -216,11 +216,13 @@ class MLCNN(nn.Module):
             nn.ReLU(),
         )
         # fully connected layer
-        self.mlp =  nn.Sequential(
+        self.mlp1 =  nn.Sequential(
             nn.Linear(50 * 122, 256),
             nn.ReLU(),
-            nn.Linear(256, 7),
+            
         )
+        self.mlp2 = nn.Linear(256, 7)
+        self.dropout = nn.Dropout(0.3)
         #self.mlp1 = nn.Linear(50 * 122, 256)
         #nn.ReLU()
         #self.mlp2 = nn.Linear(256, 5)
@@ -231,9 +233,12 @@ class MLCNN(nn.Module):
         output: N * num_classes
         """
         x = self.conv1(x)
+        x = self.dropout(x)
         x = self.conv2(x)
         # view(x.size(0), -1): change tensor size from (N ,H , W) to (N, H*W)
-        x = self.mlp(x.view(x.size(0), -1))
+        x = self.mlp1(x.view(x.size(0), -1))
+        x = self.dropout(x)
+        x = self.mlp2(x)
         #x = self.mlp1(x.view(x.size(0), -1))
         #x = self.mlp2(x)
         return x
@@ -267,12 +272,12 @@ def threshold_desicion(train_pre_label,true_label):
 
     return thresholds
 
-snr_val = ['-18']
+snr_val = ['-18','-12','-15','-9','-6','-3','0']
 #train_num_val = ['20','40','60','100']
-train_num_val = ['40']
+train_num_val = ['20']
 
-BATCH_SIZE = 64
-num_experiment = 1 #实验次数
+BATCH_SIZE = 32
+num_experiment = 10 #实验次数
 for mix in range(7,8):
     for train_num in train_num_val:
         for SNR in snr_val:
@@ -315,7 +320,7 @@ for mix in range(7,8):
                 # 数据获取与处理
                 m = nn.Sigmoid()
                 loss_func = nn.BCELoss()
-                opt = torch.optim.Adam(model.parameters(), lr=0.001)
+                opt = torch.optim.Adam(model.parameters(), lr=0.0001)
                 #loss_count = []
                 macro_auc_count = []
                 hamming_loss_count = []
@@ -454,7 +459,7 @@ for mix in range(7,8):
                 performance_sheet.write(l + 1, 4, average_precision)
                 performance_sheet.write(l + 1, 5, macro_auc)
                 performance_sheet.write(l + 1, 6, train_time)
-            filename = '0704_results_MLCNN1_snr_{}_trainnum_{}.xls'.format(SNR,train_num)
+            filename = '0710_results_MLCNN1_snr_{}_trainnum_{}.xls'.format(SNR,train_num)
             workbook.save(filename)
     #accuracy_partial_count(label_true, pre_label)
     '''
